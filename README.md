@@ -63,3 +63,7 @@ In the original script file, many roles and channels were defined by their IDs w
 ## Notes
 
 This is my first ever Discord bot, so the code is sloppy and likely prone to crashes. Additionally, the code has been made to be specific to one server, although in the updated version, all server-specific IDs (such as channel and role IDs) will be stored as global variables, allowing anyone to download the code and get their own version of this bot up and running.
+
+## Token Leak
+
+I am aware that in my first commit to this repository I accidentally uploaded my config.json file. I made sure to reset my token ASAP. You can do whatever you want with that token now.
