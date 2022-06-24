@@ -798,37 +798,28 @@ function invite(chan) {
     chan.send(inviteLink);
 }
 
-function clear(channel, msg = undefined, author = undefined) {
+async function clear(channel, msg = undefined, author = author ?? msg.author.tag) {
     if (msg !== undefined) {
         msg.delete();
     }
-    if (author === undefined && msg.author.tag !== undefined) {
-        author = msg.author.tag;
+    let msgs = { size: 1 }
+    while (msgs.size != 0) {
+        msgs = await channel.messages.fetch({ limit: 100 });
+        channel.bulkDelete(msgs).catch(() => {
+            channel.send('Error deleting messages');
+        })
     }
-    channel.messages.fetch({ limit: 100 }).then((msgs) => {
-        if (msgs.size > 0) {
-            channel.bulkDelete(msgs).then(() => {
-                channel.messages.fetch({ limit: 100 }).then((msgs) => {
-                    if (msgs.size > 0) {
-                        clear(channel, msg, author);
-                    } else {
-                        channel.send({
-                            embeds: [
-                                buildEmbed(
-                                    "#20add8",
-                                    `Cleared ${channel.name}`,
-                                    `${author} cleared this channel`,
-                                    [],
-                                    { text: "xOvermod by Isaac Maddox. ,help", },
-                                    false
-                                )
-                            ]
-                        });
-                        return;
-                    }
-                })
-            });
-        }
+    channel.send({
+        embeds: [
+            buildEmbed(
+                "#20add8",
+                `Cleared ${channel.name}`,
+                `${author} cleared this channel`,
+                [],
+                { text: "xOvermod by Isaac Maddox. ,help", },
+                false
+            )
+        ]
     });
 }
 
