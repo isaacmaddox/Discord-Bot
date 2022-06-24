@@ -688,8 +688,176 @@ function unmute(msg) {
 function warn(msg) {
     let args = msg.content.replace(',warn ', '').split(' '); // Separate the arguments from the command
     let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user
-    let reason = msg.content.trim().substring(msg.content.indexOf(user) + user.length + 2, msg.content.length);
     let mod = msg.author.tag;
+
+    if (user == "list") {
+        let target;
+        if (args[1]) {
+            target = args[1].replace("<@", '').replace('>', '') || undefined;
+        } else {
+            help("warn-list", msg);
+            return;
+        }
+
+        if (!msg.guild.members.cache.get(target)) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `This user does not exist in this guild`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            })
+            return;
+        }
+
+        let obj = warns.find(m => m.id === target);
+        if (!obj) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `This user does not have any warnings`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            })
+            return;
+        }
+
+        target = msg.guild.members.cache.get(target);
+
+        let em = buildEmbed(
+            "#E49700",
+            `${target.user.tag}'s warnings:`,
+            "",
+            [],
+            null,
+            true
+        );
+
+        for (var i = 0; i < obj.messages.length; i++) {
+            em.addField(`Warning ${i + 1}`, `${obj.messages[i].mod} - ${obj.messages[i].msg}`);
+        }
+
+        msg.reply({
+            embeds: [
+                em
+            ]
+        })
+        return;
+    }
+
+    if (user == "remove") {
+        let target;
+        let ind;
+
+        if (args[1] && parseInt(args[2]) > 0) {
+            target = args[1].replace("<@", '').replace('>', '');
+            ind = args[2] - 1;
+        } else if (!args[1]) {
+            help("warn-remove", msg);
+            return;
+        } else if (args[1] && !args[2]) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `Please enter a warning to remove`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            });
+            return;
+        } else if (isNaN(parseInt(args[2])) || parseInt(args[2]) < 1) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `Please enter a valid index (positive non-zero integer)`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            });
+            return;
+        }
+
+        if (!msg.guild.members.cache.find(m => m.id === target)) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `This user does not exist in this guild`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            });
+            return;
+        }
+
+        if (!warns.find(m => m.id === target)) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `This user does not have any warnings`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            });
+            return;
+        }
+
+        let msgs = warns.find(m => m.id === target).messages;
+
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `Removed warning:`,
+                    "",
+                    [
+                        { name: "Warning", value: `${msgs[ind].mod} - ${msgs[ind].msg}` }
+                    ],
+                    null,
+                    true
+                )
+            ]
+        });
+
+        msgs.splice(ind, 1);
+
+        if (msgs.length == 0) {
+            let ind = warns.find(m => m.id === target);
+            warns.splice(ind, 1);
+        }
+
+        return;
+    }
+
+    let reason
+    if (args[1]) {
+        reason = msg.content.trim().substring(msg.content.indexOf(args[1]), msg.content.length);
+    }
     if (reason == "") {
         reason = "No reason given";
     }
@@ -720,7 +888,7 @@ function warn(msg) {
                     [],
                     null,
                     true
-                )
+                ).addField("Test", "testing")
             ]
         });
         return;
@@ -737,6 +905,23 @@ function warn(msg) {
     let info = new warnMsg(mod, reason);
 
     obj.messages.push(info);
+
+    user = msg.guild.members.cache.get(user);
+
+    msg.reply({
+        embeds: [
+            buildEmbed(
+                "#2F3136",
+                `Warned ${user.user.tag}: ${reason}`,
+                ``,
+                [],
+                null,
+                true
+            )
+        ]
+    });
+
+    user = user.id;
 
     if (obj.messages.length == 1) {
         msg.guild.members.cache.get(user).send({
@@ -803,33 +988,47 @@ function invite(chan) {
     chan.send(inviteLink);
 }
 
-async function clear(channel, msg = undefined, author = author ?? msg.author.tag) {
-    if (msg !== undefined) {
-        msg.delete();
-    }
+async function clear(channel, msg, author) {
+    msg?.delete();
     let msgs = { size: 1 }
     while (msgs.size != 0) {
         msgs = await channel.messages.fetch({ limit: 100 });
-        channel.bulkDelete(msgs).catch(() => {
-            channel.send('Error deleting messages');
+        channel.bulkDelete(msgs).catch((e) => {
+            console.log(e);
         })
     }
     channel.send({
         embeds: [
             buildEmbed(
-                "#20add8",
-                `Cleared ${channel.name}`,
+                "#2F3136",
                 `${author} cleared this channel`,
+                "",
+                [],
+                null,
+                true
+            )
+        ]
+    }).then(mesg => {
+        setTimeout(() => {
+            mesg.delete();
+        }, 3000);
+    })
+    client.guilds.cache.get(guildId).channels.cache.get(logs).send({
+        embeds: [
+            buildEmbed(
+                "#20add8",
+                `${channel.name} cleared`,
+                `${author} cleared ${channel.name}`,
                 [],
                 { text: "xOvermod by Isaac Maddox. ,help", },
                 false
             )
         ]
-    });
+    })
 }
 
 function del(msg) {
-    let number = parseInt(msg.content.substring(7, msg.content.length));
+    let number = Math.floor(parseInt(msg.content.substring(7, msg.content.length)));
     if (!number || number == NaN) {
         msg.reply({
             embeds: [
@@ -861,7 +1060,11 @@ function del(msg) {
                     true
                 )
             ]
-        });
+        }).then((mesg) => {
+            setTimeout(() => {
+                mesg.delete()
+            }, 3000);
+        })
     }).catch(() => {
         msg.channel.send({
             embeds: [
@@ -1056,6 +1259,7 @@ function help(cmd, msg) {
                         "Gives a warning to the specified user. Three warnings results in a hour-long mute, and four warnings results in an automatic ban",
                         [
                             { name: "Syntax", value: "```,warn { user } ?{ message }```" },
+                            { name: "Other commands", value: "`,warn list` | `,warn remove`" }
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -1148,6 +1352,38 @@ function help(cmd, msg) {
                             { name: "Report", value: "Open a report channel" },
                             { name: "Appeal", value: "Appeal a staff decision" },
                             { name: "Invite", value: "Send the server invite in the current channel" },
+                        ],
+                        { text: "Type ,help { command } for more help" },
+                        true
+                    )
+                ]
+            });
+            break;
+        case "warn-list":
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        "Help: Warn List",
+                        "List the warnings the specified user has",
+                        [
+                            { name: "Syntax", value: "```,warn list { user }```" },
+                        ],
+                        { text: "Type ,help { command } for more help" },
+                        true
+                    )
+                ]
+            });
+            break;
+        case "warn-remove":
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        "Help: Warn Remove",
+                        "Remove a warning from a user's warning list",
+                        [
+                            { name: "Syntax", value: "```,warn remove { user } { index }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
