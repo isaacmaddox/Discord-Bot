@@ -8,7 +8,7 @@ const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_
 
 // Bot-specific variables
 let mutedUsers = [];
-const commands = [",1", ",2", ",ban", ",unban", ",mute", ",unmute", ",kick", ",help", ",warn", ",report", ",appeal", ",clear", ",close", ",delete"];
+const commands = [",1", ",2", ",ban", ",unban", ",mute", ",unmute", ",kick", ",help", ",warn", ",report", ",appeal", ",clear", ",close", ",delete", ",invite"];
 const modCmds = [",ban", ",unban", ",mute", ",unmute", ",kick", ",warn", ",clear", ",close", ",delete"];
 let warns = [];
 let muteTimes = [];
@@ -19,15 +19,17 @@ const staffRole = "989022886801072169";
 const muteRole = "989021549438861322";
 const logs = "989021730469191750";
 const welcome = "989022003040243723";
-const inv = "https://discord.gg/8NMyWPgNnX";
+const inviteLink = "https://discord.gg/8NMyWPgNnX";
+const reportsCategory = "989027542428184666";
+const textCategory = "989028681097818133";
 
 // Set the bot's status when started
 client.once('ready', () => {
-    client.user.setActivity(',suckmydick');
+    client.user.setActivity(',help');
 })
 
 client.on('guildMemberAdd', member => {
-    client.channels.cache.find(c => c.id === welcome).send(`Everyone welcome ${member} to xOvergang!`);
+    client.channels.cache.get(welcome).send(`Everyone welcome ${member} to xOvergang!`);
     if (mutedUsers.indexOf(member.id) > -1) {
         member.roles.add(muteRole);
     }
@@ -59,7 +61,7 @@ client.on('messageCreate', msg => {
     }
 
     // If the command is a staff command, and the user does not have a staff role, don't run the command
-    if (modCmds.indexOf(cmd) > -1 && !msg.guild.members.cache.find(m => m.id === msg.author.id).roles.cache.find(r => r.id === staffRole)) {
+    if (modCmds.indexOf(cmd) > -1 && !msg.guild.members.cache.get(msg.author.id).roles.cache.get(staffRole)) {
         msg.reply({
             embeds: [
                 buildEmbed(
@@ -76,7 +78,7 @@ client.on('messageCreate', msg => {
     }
 
     // Open the help menu if only the command was sent (And check for command-only commands)
-    if (msg.content == cmd && (cmd !== ",report" && cmd !== ",appeal" && cmd !== ",help" && cmd !== ",invite" && cmd !== ",clear")) {
+    if (msg.content == cmd && (cmd !== ",report" && cmd !== ",appeal" && cmd !== ",help" && cmd !== ",invite" && cmd !== ",clear" && cmd !== ",close")) {
         help(cmd.replace(',', ''), msg);
         return;
     }
@@ -129,6 +131,10 @@ client.on('messageCreate', msg => {
         case ",delete":
             del(msg);
             break;
+
+        case ",close":
+            closeChannel(msg);
+            break;
     }
 });
 
@@ -136,6 +142,22 @@ function ban(msg) {
     let args = msg.content.replace(',ban ', '').split(' '); // Separate the arguments from the command
     let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user's ID
     let reason = "No reason given";
+
+    if (!msg.guild.members.cache.get(user)) {
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `I could not find that user.`,
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        });
+        return;
+    }
 
     if (user === msg.author.id) {
         msg.reply({
@@ -251,7 +273,7 @@ function unban(msg) {
     let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user's ID
 
     msg.guild.members.unban(user).then(() => {
-        msg.guild.channels.cache.find(c => c.id === logs).send({
+        msg.guild.channels.cache.get(logs).send({
             embeds: [
                 buildEmbed(
                     "#20add8",
@@ -319,7 +341,7 @@ function kick(msg) {
     }
 
     try {
-        msg.guild.members.cache.find(m => m.id === user).send({
+        msg.guild.members.cache.get(user).send({
             embeds: [
                 buildEmbed(
                     "#da1212",
@@ -340,7 +362,7 @@ function kick(msg) {
 
     setTimeout(() => {
         msg.guild.members.cache.get(user).kick({ reason }).then(() => {
-            msg.guild.channels.cache.find(c => c.name === "logs").send({
+            msg.guild.channels.cache.get("logs").send({
                 embeds: [
                     buildEmbed(
                         "#da1212",
@@ -379,7 +401,7 @@ function mute(msg) {
     let setTime;
     const timeReg = new RegExp("[0-9]+[smh]");
 
-    if (!msg.guild.members.cache.find(m => m.id === user)) {
+    if (!msg.guild.members.cache.get(user)) {
         msg.reply({
             embeds: [
                 buildEmbed(
@@ -395,7 +417,7 @@ function mute(msg) {
         return;
     };
 
-    if (msg.guild.members.cache.find(m => m.id === user).roles.cache.find(r => r.id === muteRole)) {
+    if (msg.guild.members.cache.get(user).roles.cache.get(muteRole)) {
         msg.reply({
             embeds: [
                 buildEmbed(
@@ -426,7 +448,7 @@ function mute(msg) {
         return
     };
 
-    if (msg.guild.members.cache.find(m => m.id === user).roles.cache.find(r => r.id === staffRole)) {
+    if (msg.guild.members.cache.get(user).roles.cache.get(staffRole)) {
         msg.reply({
             embeds: [
                 buildEmbed(
@@ -467,7 +489,7 @@ function mute(msg) {
         reason = msg.content.substring(msg.content.indexOf(args[1]), msg.content.length);
     }
 
-    msg.guild.members.cache.find(m => m.id === user).roles.add(muteRole);
+    msg.guild.members.cache.get(user).roles.add(muteRole);
     mutedUsers.push(user);
 
     if (setTime) {
@@ -480,7 +502,7 @@ function mute(msg) {
 
         muteTimes.push(createTimer);
 
-        msg.guild.channels.cache.find(c => c.id === logs).send({
+        msg.guild.channels.cache.get(logs).send({
             embeds: [
                 buildEmbed(
                     "#da1212",
@@ -510,7 +532,7 @@ function mute(msg) {
             console.log(err);
         })
     } else {
-        msg.guild.channels.cache.find(c => c.id === logs).send({
+        msg.guild.channels.cache.get(logs).send({
             embeds: [
                 buildEmbed(
                     "#da1212",
@@ -546,10 +568,24 @@ function unmute(msg) {
     if (typeof (msg) === "string") {
         let user = msg; // Get the mentioned user's ID
 
-        if (!client.guilds.cache.get(guildId).members.cache.find(m => m.id === user)) { return; };
-        if (!client.guilds.cache.get(guildId).members.cache.find(m => m.id === user).roles.cache.find(r => r.id === muteRole)) { return; };
+        if (!client.guilds.cache.get(guildId).members.cache.get(user)) { return; };
+        if (!client.guilds.cache.get(guildId).members.cache.get(user).roles.cache.get(muteRole)) {
+            msg.reply({
+                embeds: [
+                    buildEmbed(
+                        "#2F3136",
+                        `User is not muted.`,
+                        "",
+                        [],
+                        null,
+                        true
+                    )
+                ]
+            })
+            return;
+        };
 
-        client.guilds.cache.get(guildId).members.cache.find(m => m.id === user).roles.remove(muteRole);
+        client.guilds.cache.get(guildId).members.cache.get(user).roles.remove(muteRole);
 
         var obj = muteTimes.find(t => t.user === user);
         var ind = muteTimes.indexOf(obj);
@@ -578,7 +614,7 @@ function unmute(msg) {
         let args = msg.content.replace(',unmute ', '').split(' '); // Separate the arguments from the command
         let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user's ID
 
-        msg.guild.members.cache.find(m => m.id === user).roles.remove(muteRole);
+        msg.guild.members.cache.get(user).roles.remove(muteRole);
 
         var obj = muteTimes.find(t => t.user === user);
         let ind;
@@ -740,10 +776,207 @@ function warn(msg) {
     }
 }
 
+function invite(chan) {
+    chan.send(inviteLink);
+}
+
+function clear(channel, author) {
+    if (channel.parent.id === textCategory) {
+        channel.permissionOverwrites.create(channel.guild.roles.everyone, { SEND_MESSAGES: false })
+    }
+    empty = false;
+    channel.bulkDelete(50).then(() => {
+        channel.messages.fetch({ limit: 100 }).then((msgs) => {
+            if (msgs.size == 0) {
+                client.guilds.cache.get(guildId).channels.cache.get(logs).send({
+                    embeds: [
+                        buildEmbed(
+                            "#20add8",
+                            `Cleared ${channel.name}`,
+                            `${author} cleared ${channel.name}`,
+                            [],
+                            { text: "xOvermod by Isaac Maddox. ,help", },
+                            false
+                        )
+                    ]
+                })
+                channel.send({
+                    embeds: [
+                        buildEmbed(
+                            "#2F3136",
+                            "Cleared channel",
+                            "",
+                            [],
+                            null,
+                            true
+                        )
+                    ]
+                }).then(msg => {
+                    if (channel.parent.id === textCategory) {
+                        channel.permissionOverwrites.delete(channel.guild.roles.everyone)
+                    }
+                    setTimeout(() => {
+                        msg.delete()
+                    }, 5000);
+                })
+                empty = true;
+            }
+        })
+        if (empty)
+            return;
+        clear(channel, author);
+    }).catch(() => {
+        channel.send({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    "Cannot delete any more messages",
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        })
+    })
+}
+
+function del(msg) {
+    let number = parseInt(msg.content.substring(7, msg.content.length));
+    if (!number || number == NaN) {
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `Please provide a valid number of messages to delete (1-100)`,
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        });
+        return;
+    }
+
+    if (number > 99)
+        number = 99;
+
+    msg.channel.bulkDelete(number + 1).then(() => {
+        msg.channel.send({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `Deleted ${number} messages.`,
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        });
+    }).catch(() => {
+        msg.channel.send({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `Unable to delete messages`,
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        });
+    })
+
+    msg.guild.channels.cache.get(logs).send({
+        embeds: [
+            buildEmbed(
+                "#20add8",
+                `messages deleted in ${msg.channel.name}.`,
+                `${msg.author.tag} deleted ${number} messages.`,
+                [],
+                { text: "xOvermod by Isaac Maddox. ,help", },
+                false
+            )
+        ]
+    })
+}
+
+function appeal(msg) {
+    msg.guild.channels.create(`${msg.author.tag}-appeal`, {
+        type: "text",
+        parent: reportsCategory,
+        permissionOverwrites: [
+            {
+                id: msg.guild.roles.everyone,
+                deny: ['VIEW_CHANNEL']
+            },
+            {
+                id: msg.author.id,
+                allow: ["VIEW_CHANNEL"]
+            },
+            {
+                id: staffRole,
+                allow: ['VIEW_CHANNEL']
+            }
+        ]
+    }).then((channel) => {
+        channel.send(`${msg.author}, please explain your issue here. A <@&989022886801072169> member will be with you shortly. We recommend sending screenshots of the incident you are appealing.`);
+    });
+}
+
+function report(msg) {
+    msg.guild.channels.create(`${msg.author.tag}-report`, {
+        type: "text",
+        parent: reportsCategory,
+        permissionOverwrites: [
+            {
+                id: msg.guild.roles.everyone,
+                deny: ['VIEW_CHANNEL']
+            },
+            {
+                id: msg.author.id,
+                allow: ["VIEW_CHANNEL"]
+            },
+            {
+                id: staffRole,
+                allow: ['VIEW_CHANNEL']
+            }
+        ]
+    }).then((channel) => {
+        channel.send(`${msg.author}, please tell us what you wish to report. A <@&989022886801072169> member will be with you shortly. **Please include screenshots if you can**`);
+    });
+}
+
+function closeChannel(msg) {
+    if (msg.channel.name.indexOf("-appeal") > -1 || msg.channel.name.indexOf("-report") > -1) {
+        msg.channel.send('Closing channel...');
+        setTimeout(() => {
+            msg.channel.delete();
+        }, 1000);
+    } else {
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `Nice try, buddy`,
+                    "",
+                    [],
+                    null,
+                    true
+                )
+            ]
+        })
+    }
+}
+
 function help(cmd, msg) {
     if (cmd == "") {
-        cmd = "all";
+        cmd = "1";
     }
+
     switch (cmd) {
         case "ban":
             msg.reply({
@@ -753,7 +986,7 @@ function help(cmd, msg) {
                         "Help: Ban",
                         "Bans the specified user",
                         [
-                            { name: "Syntax", value: "```,ban { user mention } ? { reason }```" },
+                            { name: "Syntax", value: "```,ban { user } ? { reason }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -769,7 +1002,7 @@ function help(cmd, msg) {
                         "Help: Unban",
                         "Revokes the ban of the specified user",
                         [
-                            { name: "Syntax", value: "```,unban { user ID }```" },
+                            { name: "Syntax", value: "```,unban { user }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -785,7 +1018,7 @@ function help(cmd, msg) {
                         "Help: Mute",
                         "Mutes the specified user, removing their permission to send messages",
                         [
-                            { name: "Syntax", value: "```,mute { user mention } ? { duration } ? { reason }```" },
+                            { name: "Syntax", value: "```,mute { user } ?{ duration } ?{ reason }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -801,7 +1034,7 @@ function help(cmd, msg) {
                         "Help: Unmute",
                         "Unmutes specified user",
                         [
-                            { name: "Syntax", value: "```,unmute { user mention }```" },
+                            { name: "Syntax", value: "```,unmute { user }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -817,7 +1050,9 @@ function help(cmd, msg) {
                         "Help: Kick",
                         "Kicks specified user",
                         [
-                            { name: "Syntax", value: "```,kick { user mention }```" },
+                            {
+                                name: "Syntax", value: "```,kick { user } ?{ reason }```"
+                            },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -833,7 +1068,7 @@ function help(cmd, msg) {
                         "Help: Warn",
                         "Gives a warning to the specified user. Three warnings results in a hour-long mute, and four warnings results in an automatic ban",
                         [
-                            { name: "Syntax", value: "```,warn { user mention } { message }```" },
+                            { name: "Syntax", value: "```,warn { user } ?{ message }```" },
                         ],
                         { text: "Type ,help { command } for more help" },
                         true
@@ -934,128 +1169,6 @@ function help(cmd, msg) {
             });
             break;
     }
-}
-
-function invite(chan) {
-    chan.send(inv);
-}
-
-function clear(channel, author) {
-    empty = false;
-    channel.bulkDelete(50).then(() => {
-        channel.messages.fetch({ limit: 100 }).then((msgs) => {
-            if (msgs.size == 0) {
-                client.guilds.cache.get(guildId).channels.cache.get(logs).send({
-                    embeds: [
-                        buildEmbed(
-                            "#20add8",
-                            `Cleared ${channel.name}`,
-                            `${author} cleared ${channel.name}`,
-                            [],
-                            { text: "xOvermod by Isaac Maddox. ,help", },
-                            false
-                        )
-                    ]
-                });
-                channel.send({
-                    embeds: [
-                        buildEmbed(
-                            "#2F3136",
-                            "Cleared channel",
-                            "",
-                            [],
-                            null,
-                            true
-                        )
-                    ]
-                }).then(msg => {
-                    setTimeout(() => {
-                        msg.delete()
-                    }, 5000);
-                })
-                empty = true;
-            }
-        })
-        if (empty)
-            return;
-        clear(channel, author);
-    }).catch(() => {
-        channel.send({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    "Cannot delete any more messages",
-                    "",
-                    [],
-                    null,
-                    true
-                )
-            ]
-        })
-    })
-}
-
-function del(msg) {
-    let number = parseInt(msg.content.substring(7, msg.content.length));
-    if (!number || number == NaN) {
-        msg.reply({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    `Please provide a valid number of messages to delete (1-100)`,
-                    "",
-                    [],
-                    null,
-                    true
-                )
-            ]
-        });
-        return;
-    }
-
-    if (number > 99)
-        number = 99;
-
-    msg.channel.bulkDelete(number + 1).then(() => {
-        msg.channel.send({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    `Deleted ${number} messages.`,
-                    "",
-                    [],
-                    null,
-                    true
-                )
-            ]
-        });
-    }).catch(() => {
-        msg.channel.send({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    `Unable to delete messages`,
-                    "",
-                    [],
-                    null,
-                    true
-                )
-            ]
-        });
-    })
-
-    msg.guild.channels.cache.get(logs).send({
-        embeds: [
-            buildEmbed(
-                "#20add8",
-                `messages deleted in ${msg.channel.name}.`,
-                `${msg.author.tag} deleted ${number} messages.`,
-                [],
-                { text: "xOvermod by Isaac Maddox. ,help", },
-                false
-            )
-        ]
-    })
 }
 
 function buildEmbed(color, title, description, fields, footer, removeTimestamp) {
