@@ -28,10 +28,9 @@ let potatoChannel = "";
 const staffRole = "989022886801072169";
 const muteRole = "989021549438861322";
 const logs = "989021730469191750";
-const welcome = "989022003040243723";
+const welcomeChannel = "989022003040243723";
 const inviteLink = "https://discord.gg/8NMyWPgNnX";
 const reportsCategory = "989027542428184666";
-const textCategory = "989028681097818133";
 const potatoRole = "989727856110235658";
 
 // Set the bot's status when started
@@ -40,7 +39,7 @@ client.once('ready', () => {
 })
 
 client.on('guildMemberAdd', member => {
-    client.channels.cache.get(welcome).send(`Everyone welcome ${member} to xOvergang!`);
+    client.channels.cache.get(welcomeChannel).send(`Everyone welcome ${member} to xOvergang!`);
     if (mutedUsers.indexOf(member.id) > -1) {
         member.roles.add(muteRole);
     }
@@ -1413,13 +1412,15 @@ function buildEmbed(color, title, description, fields, footer, removeTimestamp) 
     return embed;
 }
 
-function potatoGame(msg) {
+async function potatoGame(msg) {
+    let args = msg.content.replace(',potato ', '').replace(',p ', '').split(' '); // Separate the arguments from the command
+    let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user
     if (!ableToPlay) {
         msg.reply({
             embeds: [
                 buildEmbed(
                     "#2F3136",
-                    `5 minutes must pass between each game.`,
+                    `1 minute must pass between each game.`,
                     ``,
                     [],
                     null,
@@ -1446,10 +1447,6 @@ function potatoGame(msg) {
         return;
     }
 
-    let args = msg.content.replace(',potato ', '').replace(',p ', '').split(' '); // Separate the arguments from the command
-    let user = args[0].replace('<@', '').replace('>', ''); // Get the mentioned user
-    let newGame = false;
-
     if (user == "") {
         msg.reply({
             embeds: [
@@ -1472,28 +1469,6 @@ function potatoGame(msg) {
                 buildEmbed(
                     "#2F3136",
                     `You can't give me the potato`,
-                    ``,
-                    [],
-                    null,
-                    true
-                )
-            ]
-        })
-        return;
-    }
-
-    if (potato.currentUser === null) {
-        potato.currentUser = msg.author.id;
-        newGame = true;
-        potatoChannel = msg.channel.id;
-    }
-
-    if (potato.currentUser !== msg.author.id) {
-        msg.reply({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    `You do not have the hot potato`,
                     ``,
                     [],
                     null,
@@ -1532,21 +1507,11 @@ function potatoGame(msg) {
             ]
         })
         return;
-    } else if (potato.currentUser == user) {
-        msg.reply({
-            embeds: [
-                buildEmbed(
-                    "#2F3136",
-                    `You cannot pass the potato to yourself`,
-                    ``,
-                    [],
-                    null,
-                    true
-                )
-            ]
-        })
-        return;
-    } else if (msg.guild.members.cache.find(m => m.id === user).presence.status === "offline") {
+    }
+
+    let mems = await msg.guild.members.fetch();
+
+    if (mems.get(user).presence === null || mems.get(user).presence.status === "offline") {
         msg.reply({
             embeds: [
                 buildEmbed(
@@ -1562,10 +1527,52 @@ function potatoGame(msg) {
         return;
     }
 
+    let newGame = false;
+
+
+    if (potato.currentUser === null) {
+        potato.currentUser = msg.author.id;
+        potatoChannel = msg.channel.id;
+        newGame = true;
+    }
+
+    if (potato.currentUser !== msg.author.id) {
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `You do not have the hot potato`,
+                    ``,
+                    [],
+                    null,
+                    true
+                )
+            ]
+        })
+        return;
+    }
+
+    if (potato.currentUser == user) {
+        msg.reply({
+            embeds: [
+                buildEmbed(
+                    "#2F3136",
+                    `You cannot pass the potato to yourself`,
+                    ``,
+                    [],
+                    null,
+                    true
+                )
+            ]
+        })
+        return;
+    };
+
+
     if (newGame) {
         let handle = setTimeout(() => {
             endGame(msg.channel);
-        }, 60000);
+        }, 6000);
 
         potato.timer = handle;
         potato.previousUser = msg.author.id;
@@ -1583,7 +1590,7 @@ function potatoGame(msg) {
                 )
             ]
         }).then(() => {
-            msg.channel.send(`<@${user}> type ,potato { user } to pass the potato`);
+            msg.channel.send(`<@${user}> type ,potato { user } or ,p { user } to pass the potato`);
         })
 
     } else {
@@ -1613,7 +1620,6 @@ function endGame(channel) {
     let user = potato.currentUser;
     let userObj = client.guilds.cache.get(guildId).members.cache.get(user);
     if (potatoHead !== "") {
-        console.log('getting rid of role');
         client.guilds.cache.get(guildId).members.cache.get(potatoHead).roles.remove(potatoRole);
     }
     potatoHead = user;
@@ -1639,7 +1645,7 @@ function endGame(channel) {
 
     potatoTimer = setTimeout(() => {
         ableToPlay = true;
-    }, 300000);
+    }, 60000);
 }
 
 function muteTimer(timer, user) {
