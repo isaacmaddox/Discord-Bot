@@ -7,8 +7,9 @@ const { guildId, token } = require('./config.json');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_BANS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_PRESENCES] });
 
 // Bot-specific variables
+const gitLink = "https://github.com/isaacmaddox/Discord-Bot";
 let mutedUsers = [];
-const commands = [",1", ",2", ",ban", ",unban", ",mute", ",unmute", ",kick", ",help", ",warn", ",report", ",appeal", ",clear", ",close", ",delete", ",invite", ",potato", ",p"];
+const commands = [",1", ",2", ",ban", ",unban", ",mute", ",unmute", ",kick", ",help", ",warn", ",report", ",appeal", ",clear", ",close", ",delete", ",invite", ",potato", ",p", ",git"];
 const modCmds = [",ban", ",unban", ",mute", ",unmute", ",kick", ",warn", ",clear", ",close", ",delete"];
 let warns = [];
 let muteTimes = [];
@@ -88,7 +89,7 @@ client.on('messageCreate', msg => {
     }
 
     // Open the help menu if only the command was sent (And check for command-only commands)
-    if (msg.content == cmd && (cmd !== ",report" && cmd !== ",appeal" && cmd !== ",help" && cmd !== ",invite" && cmd !== ",clear" && cmd !== ",close" && cmd !== ",potato" && cmd !== ",p")) {
+    if (msg.content == cmd && (cmd !== ",report" && cmd !== ",appeal" && cmd !== ",help" && cmd !== ",invite" && cmd !== ",clear" && cmd !== ",close" && cmd !== ",potato" && cmd !== ",p" && cmd !== ",git")) {
         help(cmd.replace(',', ''), msg);
         return;
     }
@@ -152,6 +153,10 @@ client.on('messageCreate', msg => {
 
         case ",p":
             potatoGame(msg);
+            break;
+
+        case ",git":
+            msg.reply(gitLink);
             break;
     }
 });
