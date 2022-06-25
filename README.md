@@ -40,8 +40,7 @@ The `,help` command can be a standalone command, or it can take in one argument,
 
 The `,warn` command takes two arguments: user and an optional reason. This command will give the specified user a warning. The first warning will send the user a DM informing them of how warnings work: three warnings is an automatic hour-long mute, and four warnings is an automatic ban. When the user hits three or four warnings, they also receive a DM from the bot telling them what happened.
 
-I also intend to add `,warn list { user }` to this command, allowing moderators to view the warnings that a user has.
-Additionally, `,warn remove { user } { number }` will be a command. Specifics will be worked out in the future.
+#### te
 
 ### *`,report` and *`,appeal`
 
